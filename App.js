@@ -1,19 +1,37 @@
 import React, { useRef, useState } from "react";
-import { StyleSheet, Text, View, Image } from "react-native";
+import { StyleSheet, Text, View, Image} from "react-native";
+import { Card} from "react-native-elements";
 import { GameEngine } from "react-native-game-engine";
 import { TouchableOpacity } from "react-native-gesture-handler";
 import Food from "./components/Food";
 import Head from "./components/Head";
+import {
+  AdMobBanner,
+  AdMobInterstitial,
+  setTestDeviceIDAsync
+} from "expo-ads-admob";
 import Tail from "./components/Tail";
 import Constants from "./Constants";
 import GameLoop from "./systems/GameLoop";
+
 export default function App() {
+  const Home = () => {
+    React.useEffect(() => {
+       setTestDeviceIDAsync("EMULATOR");
+    }, []);
+  }
   const BoardSize = Constants.GRID_SIZE * Constants.CELL_SIZE;
   const engine = useRef(null);
   const [isGameRunning, setIsGameRunning] = useState(true);
   const randomPositions = (min, max) => {
     return Math.floor(Math.random() * (max - min + 1) + min);
   };
+  const initInterstitialAd = async () => {
+    // Display a rewarded ad
+    await AdMobInterstitial.setAdUnitID("ca-app-pub-3940256099942544/8691691433");
+    await AdMobInterstitial.requestAdAsync();
+    await AdMobInterstitial.showAdAsync();
+};
   const resetGame = () => {
     engine.current.swap({
       head: {
@@ -46,7 +64,10 @@ export default function App() {
     setIsGameRunning(true);
   };
   return (
+
+    
     <View style={styles.canvas}>
+       
       <GameEngine
         ref={engine}
         style={{
@@ -86,10 +107,13 @@ export default function App() {
             case "game-over":
               alert("Game over!");
               setIsGameRunning(false);
+              initInterstitialAd();
               return;
           }
         }}
       />
+      
+     
       <View style={styles.controlContainer}>
         <View style={styles.controllerRow}>
           <TouchableOpacity onPress={() => engine.current.dispatch("move-up")}>
@@ -144,11 +168,23 @@ export default function App() {
             Start New Game
           </Text>
         </TouchableOpacity>
-      )}
+        
+      )}<View style={{
+        padding: 30,
+      }}>
+    <AdMobBanner
+      adUnitID="ca-app-pub-3940256099942544/6300978111"
+      bannerSize="smartBanner"
+      servePersonalizedAds={true}
+    />
+    </View>
     </View>
   );
 }
 const styles = StyleSheet.create({
+  bannerContainer:{
+    marginTop:2,
+  },
   canvas: {
     flex: 1,
     backgroundColor: "lightblue",
@@ -165,7 +201,7 @@ const styles = StyleSheet.create({
   },
   controlBtn: {
     
-    width: 70,
-    height: 70,
+    width: 60,
+    height: 60,
   },
 });
