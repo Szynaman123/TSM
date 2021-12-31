@@ -1,6 +1,5 @@
 import React, { useRef, useState } from "react";
-import { StyleSheet, Text, View, Image} from "react-native";
-import { Card} from "react-native-elements";
+import { StyleSheet, Text, View, Image, Alert,BackHandler} from "react-native";
 import { GameEngine } from "react-native-game-engine";
 import { TouchableOpacity } from "react-native-gesture-handler";
 import Food from "./components/Food";
@@ -8,13 +7,15 @@ import Head from "./components/Head";
 import {
   AdMobBanner,
   AdMobInterstitial,
+  AdMobRewarded,
   setTestDeviceIDAsync
 } from "expo-ads-admob";
 import Tail from "./components/Tail";
 import Constants from "./Constants";
 import GameLoop from "./systems/GameLoop";
-
+var Counter=0;
 export default function App() {
+  
   const Home = () => {
     React.useEffect(() => {
        setTestDeviceIDAsync("EMULATOR");
@@ -27,11 +28,53 @@ export default function App() {
     return Math.floor(Math.random() * (max - min + 1) + min);
   };
   const initInterstitialAd = async () => {
-    // Display a rewarded ad
-    await AdMobInterstitial.setAdUnitID("ca-app-pub-3940256099942544/8691691433");
+    const adUnitID = Platform.select({
+      // https://developers.google.com/admob/ios/test-ads
+      ios: 'ca-app-pub-3940256099942544/4411468910',
+      // https://developers.google.com/admob/android/test-ads
+      android: 'ca-app-pub-3940256099942544/1033173712',
+    });
+    await AdMobInterstitial.setAdUnitID(adUnitID);
     await AdMobInterstitial.requestAdAsync();
     await AdMobInterstitial.showAdAsync();
 };
+const createOneButtonAlert=()=>
+Alert.alert(
+  "Game Over!",
+  "You lost, start a new game!",
+  [
+
+    { text: "OK", onPress: () => initInterstitialAd() }
+  ],{
+    cancelable: false,
+  }
+);
+const createTwoButtonAlert = () =>
+Alert.alert(
+  "Game Over!",
+  "You lost! Watch ad to play again.",
+  [
+    {
+      text: "shutdown app",
+      onPress: () => BackHandler.exitApp(),
+      style: "cancel"
+    },
+    { text: "OK", onPress: () => initRewardedAd() }
+  ],{
+    cancelable: false,
+  }
+);
+  const initRewardedAd= async() =>{
+    const adUnitID = Platform.select({
+      // https://developers.google.com/admob/ios/test-ads
+      ios: 'ca-app-pub-3940256099942544/1712485313',
+      // https://developers.google.com/admob/android/test-ads
+      android: 'ca-app-pub-3940256099942544/5224354917',
+    });
+    await AdMobRewarded.setAdUnitID(adUnitID); // Test ID, Replace with your-admob-unit-id
+    await AdMobRewarded.requestAdAsync();
+    await AdMobRewarded.showAdAsync();
+  };
   const resetGame = () => {
     engine.current.swap({
       head: {
@@ -105,9 +148,15 @@ export default function App() {
         onEvent={(e) => {
           switch (e) {
             case "game-over":
-              alert("Game over!");
-              setIsGameRunning(false);
-              initInterstitialAd();
+              if(Counter<3){
+                createOneButtonAlert();
+                setIsGameRunning(false);
+                Counter+=1;
+                }else{
+                  createTwoButtonAlert();
+                  setIsGameRunning(false);
+                  Counter=0;
+                }
               return;
           }
         }}
